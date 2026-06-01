@@ -1,0 +1,17 @@
+﻿# Xcode
+*.xcworkspace
+*.xcuserdata
+*.xcbkptlist
+DerivedData/
+build/
+
+# xcodegen
+Wallhaven.xcodeproj/
+
+# macOS
+.DS_Store
+
+# SwiftPM
+.build/
+Packages/
+Package.resolved

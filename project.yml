@@ -1,0 +1,47 @@
+﻿name: Wallhaven
+options:
+  bundleIdPrefix: com.wallhaven
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "26.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: ""
+    INFOPLIST_FILE: Resources/Info.plist
+
+targets:
+  Wallhaven:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+    resources:
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wallhaven.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies: []
+  WallhavenTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.wallhaven.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: Wallhaven
+
+schemes:
+  Wallhaven:
+    build:
+      targets:
+        Wallhaven: all
+        WallhavenTests: [test]
+    test:
+      targets:
+        - WallhavenTests
