@@ -1,9 +1,9 @@
-﻿name: Wallhaven
+name: Wallhaven
 options:
   bundleIdPrefix: com.wallhaven
   deploymentTarget:
-    iOS: "26.0"
-  xcodeVersion: "26.0"
+    iOS: "27.0"
+  xcodeVersion: "27.0"
 
 settings:
   base:

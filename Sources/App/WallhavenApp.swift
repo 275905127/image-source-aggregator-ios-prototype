@@ -4,7 +4,12 @@
 struct WallhavenApp: App {
     var body: some Scene {
         WindowGroup {
-            ImageSourcePrototypeView()
+            BrowseView(
+                viewModel: BrowseViewModel(
+                    feedEngine: FeedEngine(),
+                    imageLoader: ImageLoader()
+                )
+            )
         }
     }
 }

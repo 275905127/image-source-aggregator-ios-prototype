@@ -161,6 +161,40 @@ final class WallpaperSourceImportTests: XCTestCase {
         XCTAssertFalse(result.hasMore)
     }
 
+    func testJSONPathStyleMappingsDecodeRootArraysAndIndexedValues() throws {
+        let source = WallpaperSourceEngine(
+            name: "JSONPath API",
+            kind: .jsonAPI,
+            request: SourceEngineRequest(baseURL: "https://example.com", pathTemplate: "/images"),
+            mapping: SourceEngineMapping(
+                itemsPath: "$.data[*]",
+                idPath: "id",
+                thumbnailURLPath: "assets[0].url",
+                fullImageURLPath: "assets[1].url",
+                titlePath: "title",
+                defaultHasMore: false
+            )
+        )
+        let response: [String: Any] = [
+            "data": [
+                [
+                    "id": "jsonpath-1",
+                    "title": "JSONPath image",
+                    "assets": [
+                        ["url": "https://example.com/thumb.jpg"],
+                        ["url": "https://example.com/full.jpg"]
+                    ]
+                ]
+            ]
+        ]
+
+        let result = try source.decodeWallpapers(from: response, page: 1)
+        XCTAssertEqual(result.wallpapers.count, 1)
+        XCTAssertEqual(result.wallpapers[0].id, "jsonpath-1")
+        XCTAssertEqual(result.wallpapers[0].thumbnailURL.absoluteString, "https://example.com/thumb.jpg")
+        XCTAssertEqual(result.wallpapers[0].fullImageURL.absoluteString, "https://example.com/full.jpg")
+    }
+
     func testPaginationSupportsBooleanAndLastPagePaths() throws {
         var booleanMapping = SourceEngineMapping()
         booleanMapping.hasMorePath = "has_more"
@@ -191,5 +225,44 @@ final class WallpaperSourceImportTests: XCTestCase {
         ]
         XCTAssertTrue(try lastPageSource.decodeWallpapers(from: lastPageResponse, page: 2).hasMore)
         XCTAssertFalse(try lastPageSource.decodeWallpapers(from: lastPageResponse, page: 3).hasMore)
+    }
+
+    func testBuiltInTemplateCatalogProvidesUsableDefaults() throws {
+        let defaults = WallpaperSourceTemplateCatalog.defaultEngines
+        XCTAssertGreaterThanOrEqual(defaults.count, 3)
+        XCTAssertTrue(defaults.contains { $0.name == "Bing Wallpaper" })
+        XCTAssertTrue(defaults.contains { $0.name == "Lorem Picsum" })
+        XCTAssertEqual(WallpaperSourceTemplateCatalog.bingWallpaper.mapping.itemsPath, "images")
+        XCTAssertEqual(WallpaperSourceTemplateCatalog.picsumPhotos.mapping.itemsPath, "$")
+    }
+
+    func testDirectLinksRejectInvalidURLs() throws {
+        let source = WallpaperSourceEngine(
+            name: "Direct",
+            kind: .directLinks,
+            directImages: [
+                "https://example.com/a.jpg",
+                "file:///tmp/private.jpg",
+                "not-a-url"
+            ]
+        )
+
+        XCTAssertEqual(source.validDirectImageURLs.map(\.absoluteString), ["https://example.com/a.jpg"])
+        let tester = WallpaperSourceTester()
+        let issues = tester.validate(source)
+        XCTAssertTrue(issues.contains { $0.severity == .warning })
+    }
+
+    func testTesterReportsMissingJSONAPIEndpoint() throws {
+        let source = WallpaperSourceEngine(
+            name: "Broken",
+            kind: .jsonAPI,
+            request: SourceEngineRequest(),
+            mapping: SourceEngineMapping(fullImageURLPath: "")
+        )
+
+        let issues = WallpaperSourceTester().validate(source)
+        XCTAssertTrue(issues.contains { $0.severity == .error && $0.title == "缺少 API 地址" })
+        XCTAssertTrue(issues.contains { $0.severity == .error && $0.title == "缺少图片映射" })
     }
 }

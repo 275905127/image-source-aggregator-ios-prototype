@@ -84,7 +84,7 @@ final class WallpaperRepository: @unchecked Sendable {
         guard startIndex < allURLs.count else { return ([], false) }
         let endIndex = min(allURLs.count, startIndex + pageSize)
         let wallpapers = allURLs[startIndex..<endIndex].enumerated().compactMap { offset, rawURL -> Wallpaper? in
-            guard let url = URL(string: rawURL) else { return nil }
+            guard let url = WallpaperSourceEngine.validDirectImageURL(from: rawURL) else { return nil }
             return Wallpaper(
                 id: "\(sourceEngine.id.uuidString)-\(startIndex + offset)-\(rawURL)",
                 thumbnailURL: url,

@@ -17,13 +17,16 @@ struct WallpaperSourceEngineStore {
 
     func loadEngines() -> [WallpaperSourceEngine] {
         guard let data = defaults.data(forKey: enginesKey),
-               let engines = try? decoder.decode([WallpaperSourceEngine].self, from: data),
-               !engines.isEmpty else {
+              let engines = try? decoder.decode([WallpaperSourceEngine].self, from: data),
+              !engines.isEmpty else {
             defaults.set(true, forKey: didSeedDefaultEngineKey)
-            return [.wallhavenTemplate]
+            return WallpaperSourceTemplateCatalog.defaultEngines
         }
+
         var didMigrateLegacySecrets = false
-        let migratedEngines = engines.map { source in
+        let shouldSeedMissingDefaults = !defaults.bool(forKey: didSeedDefaultEngineKey)
+        let seededEngines = shouldSeedMissingDefaults ? WallpaperSourceTemplateCatalog.mergeMissingDefaults(into: engines) : engines
+        let migratedEngines = seededEngines.map { source in
             var source = source
             let legacyAPIKey = source.trimmedAPIKey
             if let storedKey = keychain.string(for: keychainAccount(for: source.id)) {
@@ -35,9 +38,11 @@ struct WallpaperSourceEngineStore {
             }
             return source
         }
-        if didMigrateLegacySecrets, let data = try? encoder.encode(migratedEngines) {
+
+        if (didMigrateLegacySecrets || seededEngines.count != engines.count), let data = try? encoder.encode(migratedEngines) {
             defaults.set(data, forKey: enginesKey)
         }
+        defaults.set(true, forKey: didSeedDefaultEngineKey)
         return migratedEngines
     }
 
@@ -51,7 +56,7 @@ struct WallpaperSourceEngineStore {
     }
 
     func save(engines: [WallpaperSourceEngine], activeEngineID: UUID) {
-        let safeEngines = engines.isEmpty ? [WallpaperSourceEngine.wallhavenTemplate] : engines
+        let safeEngines = engines.isEmpty ? WallpaperSourceTemplateCatalog.defaultEngines : engines
         for source in safeEngines {
             persistAPIKey(for: source)
         }
