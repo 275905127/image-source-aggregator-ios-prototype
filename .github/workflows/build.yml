@@ -34,32 +34,12 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Pick simulator destination
-        id: simulator
-        run: |
-          DESTINATION=$(python3 - <<'PY'
-          import json
-          import subprocess
-          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
-          for runtime, devices in sorted(data["devices"].items(), reverse=True):
-              if "iOS" not in runtime:
-                  continue
-              for device in devices:
-                  if device.get("isAvailable") and device.get("name", "").startswith("iPhone"):
-                      print(f"platform=iOS Simulator,name={device['name']},OS=latest")
-                      raise SystemExit
-          raise SystemExit("No available iPhone simulator found")
-          PY
-          )
-          echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
-          echo "Using simulator destination: $DESTINATION"
-
       - name: Run unit tests
         run: |
           xcodebuild test \
             -project Wallhaven.xcodeproj \
             -scheme Wallhaven \
-            -destination "${{ steps.simulator.outputs.destination }}" \
+            -destination "generic/platform=iOS Simulator" \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Build archive (no signing)

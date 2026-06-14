@@ -5,9 +5,9 @@ SwiftUI iPhone app for aggregating wallpaper/image sources. The app now starts i
 ## Platform
 
 - Swift 6
-- iOS 27 deployment target
+- iOS 26 deployment target, with iOS 27-ready Liquid Glass usage kept native where available
 - XcodeGen project definition in `project.yml`
-- Native SwiftUI Liquid Glass controls for iOS 27-era UI
+- Native SwiftUI Liquid Glass controls for modern iOS UI
 
 ## Current Features
 
@@ -94,11 +94,11 @@ Direct-link sources are also supported:
 
 ## Build
 
-Generate the Xcode project with XcodeGen, then build the `Wallhaven` scheme on iOS 27:
+Generate the Xcode project with XcodeGen, then build the `Wallhaven` scheme on iOS 26:
 
 ```bash
 xcodegen generate
-xcodebuild -scheme Wallhaven -destination 'platform=iOS Simulator,name=iPhone 17' build
+xcodebuild -project Wallhaven.xcodeproj -scheme Wallhaven -destination 'generic/platform=iOS Simulator' build
 ```
 
 On Windows, Swift package tests can parse the code but iOS frameworks such as SwiftUI/UIKit/Security are not available, so full build verification must run on macOS with Xcode.
