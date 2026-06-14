@@ -4,6 +4,7 @@
 @Observable
 final class BrowseViewModel {
     private let feedEngine: FeedEngine
+    private let sourceTester: WallpaperSourceTester
     let imageLoader: ImageLoader
 
     var wallpapers: [Wallpaper] { feedEngine.wallpapers }
@@ -16,6 +17,7 @@ final class BrowseViewModel {
     var sourceConfiguration: WallhavenSourceConfiguration { feedEngine.sourceConfiguration }
     var sourceEngines: [WallpaperSourceEngine] { feedEngine.sourceEngines }
     var activeSourceEngine: WallpaperSourceEngine { feedEngine.activeSourceEngine }
+    var sourceTemplates: [WallpaperSourceEngine] { WallpaperSourceTemplateCatalog.addableTemplates }
     var categoryOptions: [WallhavenCategory] { WallhavenCategory.allCases }
     var purityOptions: [WallhavenPurity] { WallhavenPurity.allCases }
     var orderOptions: [WallhavenOrder] { WallhavenOrder.allCases }
@@ -24,6 +26,7 @@ final class BrowseViewModel {
     init(feedEngine: FeedEngine, imageLoader: ImageLoader) {
         self.feedEngine = feedEngine
         self.imageLoader = imageLoader
+        self.sourceTester = WallpaperSourceTester()
     }
 
     func onAppear() async {
@@ -87,6 +90,15 @@ final class BrowseViewModel {
 
     func onSourceSaved(_ sourceEngine: WallpaperSourceEngine) async {
         await feedEngine.saveSourceEngine(sourceEngine)
+    }
+
+    func onSourceTemplateAdded(_ template: WallpaperSourceEngine) async {
+        let source = template.isBuiltInTemplate ? template.duplicatedForEditing() : template
+        await feedEngine.saveSourceEngine(source)
+    }
+
+    func onSourceTestRequested(_ sourceEngine: WallpaperSourceEngine) async -> WallpaperSourceTestReport {
+        await sourceTester.test(sourceEngine, query: currentQuery)
     }
 
     func onSourcesImported(_ sourceEngines: [WallpaperSourceEngine]) async {

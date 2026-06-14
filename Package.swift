@@ -15,5 +15,10 @@ let package = Package(
             path: "Sources",
             resources: [.process("Resources")]
         ),
+        .testTarget(
+            name: "WallhavenTests",
+            dependencies: ["Wallhaven"],
+            path: "Tests"
+        ),
     ]
 )

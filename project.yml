@@ -1,4 +1,4 @@
-﻿name: Wallhaven
+name: Wallhaven
 options:
   bundleIdPrefix: com.wallhaven
   deploymentTarget:

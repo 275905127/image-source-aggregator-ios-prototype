@@ -7,6 +7,10 @@ struct BrowseView: View {
     @State private var selectedWallpaper: Wallpaper?
     @State private var searchTask: Task<Void, Never>?
 
+    private var navigationTitle: String {
+        viewModel.activeSourceEngine.name.isEmpty ? "图源聚合" : viewModel.activeSourceEngine.name
+    }
+
     init(viewModel: BrowseViewModel) {
         _viewModel = State(initialValue: viewModel)
     }
@@ -41,7 +45,17 @@ struct BrowseView: View {
     private var browseNavigation: some View {
         NavigationStack {
             wallpaperGrid
-            .navigationTitle("Wallhaven")
+            .navigationTitle(navigationTitle)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        selectedTab = .sources
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
         }
     }
 

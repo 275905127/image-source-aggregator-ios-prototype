@@ -443,14 +443,14 @@ extension WallpaperSourceEngine {
                 in: item,
                 paths: fullImagePathCandidates,
                 prefix: mapping.fullImageURLPrefix
-            ).flatMap({ URL(string: $0) }) else {
+            ).flatMap(validHTTPURL) else {
                 return nil
             }
             let thumbnailURL = firstURLValue(
                 in: item,
                 paths: thumbnailPathCandidates,
                 prefix: mapping.thumbnailURLPrefix
-            ).flatMap({ URL(string: $0) }) ?? fullImageURL
+            ).flatMap(validHTTPURL) ?? fullImageURL
             let width = intValue(in: item, at: mapping.widthPath)
                 ?? intValue(in: item, atAny: ["width", "w", "dimension_x", "image.width", "image_width"])
             let height = intValue(in: item, at: mapping.heightPath)
@@ -476,7 +476,7 @@ extension WallpaperSourceEngine {
                 fileType: stringValue(in: item, at: mapping.fileTypePath) ?? stringValue(in: item, atAny: ["file_type", "fileType", "type", "mime"]) ?? fullImageURL.pathExtension,
                 createdAt: stringValue(in: item, at: mapping.createdAtPath) ?? stringValue(in: item, atAny: ["created_at", "createdAt", "date", "startdate"]) ?? "",
                 colors: stringArrayValue(in: item, at: mapping.colorsPath),
-                sourceURL: firstURLValue(in: item, paths: [mapping.sourceURLPath, "source", "source_url", "sourceURL", "url"], prefix: nil).flatMap(URL.init(string:))
+                sourceURL: firstURLValue(in: item, paths: [mapping.sourceURLPath, "source", "source_url", "sourceURL", "url"], prefix: nil).flatMap(validHTTPURL)
             )
         }
 
@@ -520,6 +520,9 @@ extension WallpaperSourceEngine {
             if path.isEmpty, let array = root as? [Any] {
                 return array
             }
+            if path == "$", let array = root as? [Any] {
+                return array
+            }
             if let array = value(in: root, at: path) as? [Any] {
                 return array
             }
@@ -536,12 +539,14 @@ extension WallpaperSourceEngine {
     }
 
     private func value(in root: Any, at path: String) -> Any? {
-        guard !path.isEmpty else { return nil }
+        let components = pathComponents(from: path)
+        guard !components.isEmpty else { return nil }
+        if components == ["$"] { return root }
         var current: Any? = root
-        for component in path.split(separator: ".") {
+        for component in components where component != "$" {
             guard let unwrapped = current else { return nil }
             if let dictionary = unwrapped as? [String: Any] {
-                current = dictionary[String(component)]
+                current = dictionary[component]
                 continue
             }
             if let array = unwrapped as? [Any], let index = Int(component), array.indices.contains(index) {
@@ -551,6 +556,22 @@ extension WallpaperSourceEngine {
             return nil
         }
         return current
+    }
+
+    private func pathComponents(from path: String) -> [String] {
+        var normalized = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalized.isEmpty else { return [] }
+        if normalized.hasPrefix("$.") {
+            normalized.removeFirst(2)
+        }
+        normalized = normalized.replacingOccurrences(of: "[*]", with: "")
+        normalized = normalized.replacingOccurrences(of: "[]", with: "")
+        normalized = normalized.replacingOccurrences(of: "[", with: ".")
+        normalized = normalized.replacingOccurrences(of: "]", with: "")
+        return normalized
+            .split(separator: ".")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 
     private func urlStringValue(in root: Any, at path: String, prefix: String?) -> String? {
@@ -567,20 +588,31 @@ extension WallpaperSourceEngine {
         return nil
     }
 
-    private func normalizedURLString(_ rawValue: String, prefix: String?) -> String? {
-        if rawValue.contains("://") {
-            return rawValue
+    private func validHTTPURL(from string: String) -> URL? {
+        guard let url = URL(string: string),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https" else {
+            return nil
         }
-        if rawValue.hasPrefix("//") {
-            return "https:\(rawValue)"
+        return url
+    }
+
+    private func normalizedURLString(_ rawValue: String, prefix: String?) -> String? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.contains("://") {
+            return trimmed
+        }
+        if trimmed.hasPrefix("//") {
+            return "https:\(trimmed)"
         }
         guard let prefix, !prefix.isEmpty else {
-            return rawValue
+            return trimmed
         }
-        if rawValue.hasPrefix("/") {
-            return prefix.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + rawValue
+        if trimmed.hasPrefix("/") {
+            return prefix.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + trimmed
         }
-        return prefix.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/" + rawValue
+        return prefix.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/" + trimmed
     }
 
     private func stringValue(in root: Any, at path: String) -> String? {
