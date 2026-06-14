@@ -325,12 +325,14 @@ private struct SourceEngineEditorSheet: View {
     }
 
     private var directLinksSection: some View {
-        Section("图片直链") {
+        Section {
             TextEditor(text: $directLinksText)
                 .font(.body.monospaced())
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .frame(minHeight: 220)
+        } header: {
+            Text("图片直链")
         } footer: {
             Text("每行一个 http/https 图片地址。")
         }
@@ -359,7 +361,7 @@ private struct SourceEngineEditorSheet: View {
     }
 
     private var mappingSection: some View {
-        Section("JSON 映射") {
+        Section {
             TextField("Items Path", text: $draft.mapping.itemsPath)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -400,13 +402,15 @@ private struct SourceEngineEditorSheet: View {
                 get: { draft.mapping.defaultHasMore ?? false },
                 set: { draft.mapping.defaultHasMore = $0 }
             ))
+        } header: {
+            Text("JSON 映射")
         } footer: {
             Text("Path 支持 data.items、images.0.url、$.data[*].url 这类常见写法。")
         }
     }
 
     private var securitySection: some View {
-        Section("密钥与请求头") {
+        Section {
             Picker("密钥位置", selection: $draft.request.apiKeyPlacement) {
                 Text("Query").tag(SourceEngineAPIKeyPlacement.query)
                 Text("Header").tag(SourceEngineAPIKeyPlacement.header)
@@ -419,6 +423,8 @@ private struct SourceEngineEditorSheet: View {
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
             KeyValueTextEditor(title: "固定请求头", text: $staticHeaderText)
+        } header: {
+            Text("密钥与请求头")
         } footer: {
             Text("密钥会写入 Keychain；导出的图源 JSON 不会包含明文密钥。")
         }
