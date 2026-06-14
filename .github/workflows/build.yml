@@ -34,12 +34,43 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Run unit tests
+      - name: Pick simulator UDID
+        id: simulator
         run: |
-          xcodebuild test \
+          UDID=$(python3 - <<'PY'
+          import json
+          import subprocess
+          data = json.loads(subprocess.check_output(["xcrun", "simctl", "list", "devices", "available", "-j"]))
+          for runtime, devices in sorted(data["devices"].items(), reverse=True):
+              if "iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if device.get("isAvailable") and device.get("name", "").startswith("iPhone"):
+                      print(device["udid"])
+                      raise SystemExit
+          raise SystemExit("No available iPhone simulator found")
+          PY
+          )
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator UDID: $UDID"
+
+      - name: Build for testing
+        run: |
+          xcodebuild build-for-testing \
             -project Wallhaven.xcodeproj \
             -scheme Wallhaven \
             -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath ./DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run unit tests
+        run: |
+          xcrun simctl boot "${{ steps.simulator.outputs.udid }}" || true
+          xcodebuild test-without-building \
+            -project Wallhaven.xcodeproj \
+            -scheme Wallhaven \
+            -destination "platform=iOS Simulator,id=${{ steps.simulator.outputs.udid }}" \
+            -derivedDataPath ./DerivedData \
             CODE_SIGNING_ALLOWED=NO
 
       - name: Build archive (no signing)
